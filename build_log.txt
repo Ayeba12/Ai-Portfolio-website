@@ -1,0 +1,67 @@
+
+> copy-of-sam-ayebanate---ai-&-design-portfolio@0.0.0 build
+> vite build
+
+[36mvite v6.4.1 [32mbuilding for production...[36m[39m
+transforming...
+[32mΓ£ô[39m 17 modules transformed.
+Γ£ù Build failed in 770ms
+error during build:
+[vite:esbuild] Transform failed with 5 errors:
+C:/Users/Ayeba/OneDrive/Desktop/New folder (2)/Ai-Portfolio-website/components/CaseStudyPage.tsx:297:18: ERROR: The character ">" is not valid inside a JSX element
+C:/Users/Ayeba/OneDrive/Desktop/New folder (2)/Ai-Portfolio-website/components/CaseStudyPage.tsx:298:18: ERROR: The character ">" is not valid inside a JSX element
+C:/Users/Ayeba/OneDrive/Desktop/New folder (2)/Ai-Portfolio-website/components/CaseStudyPage.tsx:299:18: ERROR: The character ">" is not valid inside a JSX element
+C:/Users/Ayeba/OneDrive/Desktop/New folder (2)/Ai-Portfolio-website/components/CaseStudyPage.tsx:299:44: ERROR: The character ">" is not valid inside a JSX element
+C:/Users/Ayeba/OneDrive/Desktop/New folder (2)/Ai-Portfolio-website/components/CaseStudyPage.tsx:300:18: ERROR: The character ">" is not valid inside a JSX element
+file: C:/Users/Ayeba/OneDrive/Desktop/New folder (2)/Ai-Portfolio-website/components/CaseStudyPage.tsx:297:18
+
+The character ">" is not valid inside a JSX element
+295|                  </div>
+296|                  <p className="font-mono text-sm text-primary leading-relaxed">
+297|                    > SYSTEM_DIAGNOSTIC<br />
+   |                    ^
+298|                    > ERROR: Manual processes exceeding SLA thresholds.<br />
+299|                    > ERROR: Human error rate > 12%.<br />
+
+The character ">" is not valid inside a JSX element
+296|                  <p className="font-mono text-sm text-primary leading-relaxed">
+297|                    > SYSTEM_DIAGNOSTIC<br />
+298|                    > ERROR: Manual processes exceeding SLA thresholds.<br />
+   |                    ^
+299|                    > ERROR: Human error rate > 12%.<br />
+300|                    > STATUS: Critical bottleneck identified.
+
+The character ">" is not valid inside a JSX element
+297|                    > SYSTEM_DIAGNOSTIC<br />
+298|                    > ERROR: Manual processes exceeding SLA thresholds.<br />
+299|                    > ERROR: Human error rate > 12%.<br />
+   |                    ^
+300|                    > STATUS: Critical bottleneck identified.
+301|                  </p>
+
+The character ">" is not valid inside a JSX element
+297|                    > SYSTEM_DIAGNOSTIC<br />
+298|                    > ERROR: Manual processes exceeding SLA thresholds.<br />
+299|                    > ERROR: Human error rate > 12%.<br />
+   |                                              ^
+300|                    > STATUS: Critical bottleneck identified.
+301|                  </p>
+
+The character ">" is not valid inside a JSX element
+298|                    > ERROR: Manual processes exceeding SLA thresholds.<br />
+299|                    > ERROR: Human error rate > 12%.<br />
+300|                    > STATUS: Critical bottleneck identified.
+   |                    ^
+301|                  </p>
+302|                </div>
+
+    at failureErrorWithLog (C:\Users\Ayeba\OneDrive\Desktop\New folder (2)\Ai-Portfolio-website\node_modules\esbuild\lib\main.js:1467:15)
+    at C:\Users\Ayeba\OneDrive\Desktop\New folder (2)\Ai-Portfolio-website\node_modules\esbuild\lib\main.js:736:50
+    at responseCallbacks.<computed> (C:\Users\Ayeba\OneDrive\Desktop\New folder (2)\Ai-Portfolio-website\node_modules\esbuild\lib\main.js:603:9)
+    at handleIncomingPacket (C:\Users\Ayeba\OneDrive\Desktop\New folder (2)\Ai-Portfolio-website\node_modules\esbuild\lib\main.js:658:12)
+    at Socket.readFromStdout (C:\Users\Ayeba\OneDrive\Desktop\New folder (2)\Ai-Portfolio-website\node_modules\esbuild\lib\main.js:581:7)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)

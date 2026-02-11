@@ -1,35 +1,40 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <!-- Primary Meta Tags -->
-    <title>Sam Ayebanate | AI Engineer & Product Designer</title>
-    <meta name="title" content="Sam Ayebanate | AI Engineer & Product Designer">
-    <meta name="description" content="Portfolio of Sam Ayebanate. Specializing in autonomous AI agents, generative UI, and high-performance web experiences. Trusted by forward-thinking brands." />
-    <meta name="keywords" content="AI Engineer, Product Designer, Sam Ayebanate, AI Automation, Generative UI, React Developer, Autonomous Agents, RAG Pipelines, Web Design" />
-    <meta name="author" content="Sam Ayebanate">
-    <meta name="robots" content="index, follow, max-image-preview:large" />
-    <link rel="canonical" href="https://samayebanate.com/" />
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://samayebanate.com/">
-    <meta property="og:title" content="Sam Ayebanate | AI Engineer & Product Designer">
-    <meta property="og:description" content="Portfolio of Sam Ayebanate. Specializing in autonomous AI agents, generative UI, and high-performance web experiences.">
-    <meta property="og:image" content="https://samayebanate.com/og-image.jpg">
-    <meta property="og:site_name" content="Sam Ayebanate Portfolio">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://samayebanate.com/">
-    <meta property="twitter:title" content="Sam Ayebanate | AI Engineer & Product Designer">
-    <meta property="twitter:description" content="Portfolio of Sam Ayebanate. Specializing in autonomous AI agents, generative UI, and high-performance web experiences.">
-    <meta property="twitter:image" content="https://samayebanate.com/og-image.jpg">
-    
-    <!-- Schema.org Structured Data -->
-    <script type="application/ld+json">
+  <!-- Primary Meta Tags -->
+  <title>Sam Ayebanate | AI Engineer & Product Designer</title>
+  <meta name="title" content="Sam Ayebanate | AI Engineer & Product Designer">
+  <meta name="description"
+    content="Portfolio of Sam Ayebanate. Specializing in autonomous AI agents, generative UI, and high-performance web experiences. Trusted by forward-thinking brands." />
+  <meta name="keywords"
+    content="AI Engineer, Product Designer, Sam Ayebanate, AI Automation, Generative UI, React Developer, Autonomous Agents, RAG Pipelines, Web Design" />
+  <meta name="author" content="Sam Ayebanate">
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href="https://samayebanate.com/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://samayebanate.com/">
+  <meta property="og:title" content="Sam Ayebanate | AI Engineer & Product Designer">
+  <meta property="og:description"
+    content="Portfolio of Sam Ayebanate. Specializing in autonomous AI agents, generative UI, and high-performance web experiences.">
+  <meta property="og:image" content="https://samayebanate.com/og-image.jpg">
+  <meta property="og:site_name" content="Sam Ayebanate Portfolio">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://samayebanate.com/">
+  <meta property="twitter:title" content="Sam Ayebanate | AI Engineer & Product Designer">
+  <meta property="twitter:description"
+    content="Portfolio of Sam Ayebanate. Specializing in autonomous AI agents, generative UI, and high-performance web experiences.">
+  <meta property="twitter:image" content="https://samayebanate.com/og-image.jpg">
+
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Person",
@@ -39,175 +44,188 @@
       "jobTitle": "AI Engineer & Product Designer",
       "description": "AI Automation Expert and Product Designer specializing in autonomous agents, RAG pipelines, and premium web experiences.",
       "sameAs": [
-        "https://linkedin.com/in/samayebanate",
+        "https://linkedin.com/in/sam-ayebanate",
         "https://twitter.com/samayebanate",
         "https://github.com/samayebanate"
       ],
       "knowsAbout": ["Artificial Intelligence", "Machine Learning", "Web Development", "Product Design", "React", "TypeScript", "Generative AI"]
     }
     </script>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              background: 'var(--color-bg-primary)',
-              surface: 'var(--color-bg-secondary)',
-              border: 'var(--color-border)',
-              primary: 'var(--color-text-primary)',
-              secondary: 'var(--color-text-secondary)',
-              accent: 'var(--color-accent)',
-              'accent-text': 'var(--color-accent-text)',
-              'accent-hover': 'var(--color-accent-hover)',
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: 'var(--color-bg-primary)',
+            surface: 'var(--color-bg-secondary)',
+            border: 'var(--color-border)',
+            primary: 'var(--color-text-primary)',
+            secondary: 'var(--color-text-secondary)',
+            accent: 'var(--color-accent)',
+            'accent-text': 'var(--color-accent-text)',
+            'accent-hover': 'var(--color-accent-hover)',
+          },
+          fontFamily: {
+            display: ['Outfit', 'sans-serif'],
+            body: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'marquee': 'marquee 40s linear infinite',
+            'marquee-reverse': 'marquee-reverse 40s linear infinite',
+            'scroll-left': 'scroll-left 40s linear infinite',
+            'scroll-right': 'scroll-right 40s linear infinite',
+            'blink': 'blink 1s step-end infinite',
+            'msg-right': 'slide-in-right 0.5s cubic-bezier(0.25, 1.5, 0.5, 1) forwards',
+            'msg-left': 'slide-in-left 0.5s cubic-bezier(0.25, 1.5, 0.5, 1) forwards',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-20px)' },
             },
-            fontFamily: {
-              display: ['Outfit', 'sans-serif'],
-              body: ['Plus Jakarta Sans', 'sans-serif'],
-              mono: ['JetBrains Mono', 'monospace'],
+            marquee: {
+              '0%': { transform: 'translateX(0%)' },
+              '100%': { transform: 'translateX(-50%)' },
             },
-            animation: {
-              'float': 'float 6s ease-in-out infinite',
-              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'marquee': 'marquee 40s linear infinite',
-              'marquee-reverse': 'marquee-reverse 40s linear infinite',
-              'scroll-left': 'scroll-left 40s linear infinite',
-              'scroll-right': 'scroll-right 40s linear infinite',
-              'blink': 'blink 1s step-end infinite',
-              'msg-right': 'slide-in-right 0.5s cubic-bezier(0.25, 1.5, 0.5, 1) forwards',
-              'msg-left': 'slide-in-left 0.5s cubic-bezier(0.25, 1.5, 0.5, 1) forwards',
+            'marquee-reverse': {
+              '0%': { transform: 'translateX(-50%)' },
+              '100%': { transform: 'translateX(0%)' },
             },
-            keyframes: {
-              float: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-20px)' },
-              },
-              marquee: {
-                '0%': { transform: 'translateX(0%)' },
-                '100%': { transform: 'translateX(-50%)' },
-              },
-              'marquee-reverse': {
-                '0%': { transform: 'translateX(-50%)' },
-                '100%': { transform: 'translateX(0%)' },
-              },
-              'scroll-left': {
-                '0%': { transform: 'translateX(0)' },
-                '100%': { transform: 'translateX(-100%)' },
-              },
-              'scroll-right': {
-                '0%': { transform: 'translateX(-100%)' },
-                '100%': { transform: 'translateX(0)' },
-              },
-              blink: {
-                '0%, 100%': { opacity: '1' },
-                '50%': { opacity: '0' },
-              },
-              'slide-in-right': {
-                '0%': { opacity: '0', transform: 'translateX(20px) scale(0.95)' },
-                '100%': { opacity: '1', transform: 'translateX(0) scale(1)' },
-              },
-              'slide-in-left': {
-                 '0%': { opacity: '0', transform: 'translateX(-20px) scale(0.95)' },
-                 '100%': { opacity: '1', transform: 'translateX(0) scale(1)' },
-              }
+            'scroll-left': {
+              '0%': { transform: 'translateX(0)' },
+              '100%': { transform: 'translateX(-100%)' },
+            },
+            'scroll-right': {
+              '0%': { transform: 'translateX(-100%)' },
+              '100%': { transform: 'translateX(0)' },
+            },
+            blink: {
+              '0%, 100%': { opacity: '1' },
+              '50%': { opacity: '0' },
+            },
+            'slide-in-right': {
+              '0%': { opacity: '0', transform: 'translateX(20px) scale(0.95)' },
+              '100%': { opacity: '1', transform: 'translateX(0) scale(1)' },
+            },
+            'slide-in-left': {
+              '0%': { opacity: '0', transform: 'translateX(-20px) scale(0.95)' },
+              '100%': { opacity: '1', transform: 'translateX(0) scale(1)' },
             }
           }
         }
       }
-    </script>
+    }
+  </script>
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-    
-    <!-- Lucide Icons & GenAI -->
-    <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.39.0",
-    "three": "https://esm.sh/three@0.160.0",
-    "@dnd-kit/core": "https://esm.sh/@dnd-kit/core@^6.3.1"
-  }
-}
-</script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400&display=swap"
+    rel="stylesheet">
 
-    <style>
-      :root {
-        /* Light Theme - AAA Contrast Compliant */
-        --color-bg-primary: #FFFFFF;
-        --color-bg-secondary: #F4F4F5; /* Zinc 100 */
-        --color-text-primary: #09090B; /* Zinc 950 - Sharp Black */
-        --color-text-secondary: #3F3F46; /* Zinc 700 - Significantly darker for AAA compliance */
-        --color-accent: #C4FF61; /* Electric Lime */
-        --color-accent-text: #365314; /* Lime 950 - Deep Olive for Text on Light BG */
-        --color-accent-hover: #A3E635;
-        --color-border: #D4D4D8; /* Zinc 300 - Darker border for visibility */
-      }
-      
-      .dark {
-        /* Dark Theme - High Contrast Neon Cyber */
-        --color-bg-primary: #050505;
-        --color-bg-secondary: #121212;
-        --color-text-primary: #FFFFFF; /* Pure White */
-        --color-text-secondary: #D4D4D8; /* Zinc 300 - Brighter for legibility */
-        --color-accent: #C4FF61; /* Electric Lime */
-        --color-accent-text: #C4FF61; /* Electric Lime for Text on Dark BG */
-        --color-accent-hover: #D4FF7A;
-        --color-border: #3F3F46; /* Zinc 700 - Visible borders in dark mode */
-      }
+  <!-- Lucide Icons & GenAI -->
 
-      body {
-        background-color: var(--color-bg-primary);
-        color: var(--color-text-primary);
-        transition: background-color 0.3s ease, color 0.3s ease;
-        overflow-x: hidden;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
 
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: var(--color-bg-primary); 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: var(--color-border); 
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: var(--color-text-secondary); 
-      }
-      
-      .text-outline {
-        -webkit-text-stroke: 1px var(--color-text-secondary);
-        color: transparent;
-      }
-      
-      .glass-panel {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid var(--color-border);
-      }
+  <style>
+    :root {
+      /* Softer, Premium Light Theme (Attio Inspired) */
+      --color-bg-primary: #FFFFFF;
+      --color-bg-secondary: #F9FAFB;
+      /* Gray 50 */
+      --color-text-primary: #111827;
+      /* Gray 900 */
+      --color-text-secondary: #4B5563;
+      /* Gray 600 */
+      --color-accent: #10B981;
+      /* Emerald 500 */
+      --color-accent-text: #10B981;
+      --color-accent-hover: #059669;
+      /* Emerald 600 */
+      --color-border: #F2F2F2;
+      /* Attio-style super-light border */
+      --color-surface-hover: #F3F4F6;
+      /* Gray 100 */
+    }
 
-      /* Accessibility: Visible Focus Rings */
-      :focus-visible {
-        outline: 2px solid var(--color-accent);
-        outline-offset: 2px;
-        border-radius: 4px;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+    .dark {
+      /* Professional Dark Theme (Clean Gray/Black) */
+      --color-bg-primary: #09090B;
+      /* Zinc 950 */
+      --color-bg-secondary: #18181B;
+      /* Zinc 900 */
+      --color-text-primary: #FAFAFA;
+      /* Zinc 50 */
+      --color-text-secondary: #A1A1AA;
+      /* Zinc 400 */
+      --color-accent: #10B981;
+      /* Emerald 500 */
+      --color-accent-text: #FFFFFF;
+      --color-accent-hover: #34D399;
+      /* Emerald 400 */
+      --color-border: #1F1F23;
+      /* Subtler dark border */
+      --color-surface-hover: #27272A;
+      /* Zinc 800 */
+    }
+
+    body {
+      background-color: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      transition: background-color 0.3s ease, color 0.3s ease;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--color-bg-primary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-text-secondary);
+    }
+
+    .text-outline {
+      -webkit-text-stroke: 1px var(--color-text-secondary);
+      color: transparent;
+    }
+
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--color-border);
+    }
+
+    /* Accessibility: Visible Focus Rings */
+    :focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>

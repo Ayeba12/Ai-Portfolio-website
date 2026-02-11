@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ExternalLink, Calendar, User, Code2, Cpu, TrendingUp, TrendingDown } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { ArrowLeft, ArrowUpRight, Check, ExternalLink, Calendar, ArrowDown } from 'lucide-react';
 import { useInView } from './useInView';
+import { getAllCaseStudies } from '../services/supabaseService';
 
 // Extended Data for Case Studies (Static Fallback)
 const staticCaseStudies: Record<number, any> = {
@@ -118,63 +119,6 @@ const staticCaseStudies: Record<number, any> = {
   }
 };
 
-const TimelineWidget: React.FC<{ duration: string; year: string }> = ({ duration, year }) => {
-  return (
-    <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg mt-6 hover:border-accent/50 transition-colors duration-300">
-      <div className="flex items-center justify-between mb-8">
-         <h3 className="text-sm font-mono text-accent uppercase tracking-widest flex items-center gap-2">
-            <Calendar size={14} /> Timeline
-         </h3>
-         <span className="text-xs font-bold bg-background border border-border px-3 py-1 rounded-full text-primary shadow-sm">{duration}</span>
-      </div>
-      
-      <div className="relative px-2">
-         {/* Background Line */}
-         <div className="absolute top-1/2 left-0 w-full h-0.5 bg-border -translate-y-1/2 rounded-full"></div>
-         
-         {/* Completed Line */}
-         <div className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-accent to-primary -translate-y-1/2 rounded-full w-full origin-left"></div>
-
-         {/* Nodes */}
-         <div className="relative flex justify-between w-full">
-            {/* Node 1: Start */}
-            <div className="relative group/node">
-                <div className="w-3 h-3 rounded-full bg-accent border-2 border-surface shadow-sm z-10 relative"></div>
-                <div className="absolute top-5 left-1/2 -translate-x-1/2 text-[10px] font-mono text-secondary uppercase opacity-100 transition-opacity whitespace-nowrap">Kickoff</div>
-            </div>
-            
-            {/* Node 2: Milestone */}
-            <div className="relative group/node">
-                <div className="w-2.5 h-2.5 rounded-full bg-primary border-2 border-surface z-10 relative"></div>
-                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-mono text-secondary uppercase opacity-0 group-hover/node:opacity-100 transition-opacity whitespace-nowrap bg-background px-2 py-1 rounded border border-border shadow-sm">Milestone</div>
-            </div>
-
-            {/* Node 3: Launch */}
-            <div className="relative group/node">
-                <div className="w-3.5 h-3.5 rounded-full bg-primary border-2 border-surface shadow-sm z-10 relative flex items-center justify-center">
-                    <div className="w-1 h-1 bg-surface rounded-full"></div>
-                </div>
-                <div className="absolute top-5 left-1/2 -translate-x-1/2 text-[10px] font-mono text-primary font-bold uppercase opacity-100 transition-opacity whitespace-nowrap">Launch</div>
-            </div>
-         </div>
-      </div>
-      
-      <div className="mt-10 pt-6 border-t border-border flex justify-between items-center">
-         <div>
-            <span className="block text-xs text-secondary mb-1">Status</span>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-primary bg-accent/10 px-2 py-1 rounded text-accent-text">
-                <Check size={12} strokeWidth={3} /> Delivered
-            </div>
-         </div>
-         <div className="text-right">
-             <span className="block text-xs text-secondary mb-1">Deployment</span>
-             <span className="block text-xs font-bold text-primary">{year}</span>
-         </div>
-      </div>
-    </div>
-  );
-};
-
 interface CaseStudyPageProps {
   id: number;
   onBack: () => void;
@@ -183,208 +127,282 @@ interface CaseStudyPageProps {
 
 export const CaseStudyPage: React.FC<CaseStudyPageProps> = ({ id, onBack, onNext }) => {
   const [study, setStudy] = useState<any>(null);
-  const { ref: heroRef, isInView: heroInView } = useInView(0.1);
-  const { ref: statsRef, isInView: statsInView } = useInView(0.2);
-  const { ref: contentRef, isInView: contentInView } = useInView(0.1);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Dynamic Title & Load Data
   useEffect(() => {
-    // Try to find in LocalStorage first
-    let foundStudy = staticCaseStudies[id];
-    try {
-        const stored = localStorage.getItem('site_case_studies');
-        if (stored) {
-            const dynamicStudies = JSON.parse(stored);
-            if (dynamicStudies[id]) {
-                foundStudy = dynamicStudies[id];
-            }
+    setIsLoaded(false);
+    const loadStudy = async () => {
+      // Try to find from Supabase first, fall back to static data
+      let foundStudy = staticCaseStudies[Number(id)];
+      try {
+        const supabaseStudies = await getAllCaseStudies();
+        const match = supabaseStudies[Number(id)];
+        if (match) {
+          foundStudy = {
+            ...foundStudy,
+            ...match,
+            title: match.title || foundStudy?.title,
+            subtitle: match.subtitle || foundStudy?.subtitle,
+            heroImage: match.hero_image || foundStudy?.heroImage,
+          };
         }
-    } catch (e) {
-        console.error("Failed to load case study from storage", e);
-    }
+      } catch (e) {
+        console.error("Failed to load case study from Supabase", e);
+      }
 
-    setStudy(foundStudy);
+      setStudy(foundStudy);
+      setTimeout(() => setIsLoaded(true), 100);
 
-    if (foundStudy) {
-      document.title = `${foundStudy.title} | Sam Ayebanate Case Study`;
-    }
+      if (foundStudy) {
+        document.title = `${foundStudy.title} | Sam Ayebanate Case Study`;
+      }
+    };
+
+    loadStudy();
     window.scrollTo(0, 0);
+
+    const handleUpdate = (e: CustomEvent) => {
+      if (e.detail?.id == id) {
+        loadStudy();
+      }
+    };
+
+    window.addEventListener('site-projects-update', handleUpdate as EventListener);
+
+    const handleScroll = () => {
+      const totalScroll = document.documentElement.scrollTop;
+      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      if (windowHeight === 0) return;
+      const scroll = totalScroll / windowHeight;
+      setScrollProgress(scroll);
+    };
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('site-projects-update', handleUpdate as EventListener);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, [id]);
 
-  if (!study) return <div className="min-h-screen flex items-center justify-center text-primary">Case Study Not Found</div>;
+  if (!study) return <div className="min-h-screen flex items-center justify-center text-primary font-display text-2xl">Loading Project...</div>;
 
   return (
-    <div className="min-h-screen bg-background text-primary animate-in fade-in duration-500">
-      
-      {/* Navigation Bar Overlay */}
-      <div className="fixed top-0 left-0 w-full z-40 px-6 py-6 flex justify-between items-center bg-gradient-to-b from-background via-background/80 to-transparent pointer-events-none">
-        <button 
-          onClick={onBack}
-          className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full bg-surface/50 border border-border backdrop-blur-md hover:bg-surface hover:text-accent transition-all group"
-        >
-          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="font-medium text-sm">Back to Work</span>
-        </button>
+    <div className="bg-background min-h-screen text-primary selection:bg-accent selection:text-white pb-32">
+
+      {/* Scroll Progress & Nav */}
+      <div className="fixed top-0 left-0 w-full h-1 z-50 bg-secondary/10">
+        <div
+          className="h-full bg-accent transition-all duration-100 ease-out"
+          style={{ width: `${Math.min(scrollProgress * 100, 100)}%` }}
+        />
       </div>
+
+      <nav className="fixed top-0 w-full z-40 px-6 py-8 flex justify-between items-center mix-blend-difference text-white">
+        <button
+          onClick={onBack}
+          className="group flex items-center gap-2 text-sm font-medium uppercase tracking-widest hover:text-accent transition-colors"
+        >
+          <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+          Back
+        </button>
+      </nav>
 
       {/* Hero Section */}
-      <div ref={heroRef} className="relative h-[80vh] min-h-[600px] w-full overflow-hidden">
-        <div className="absolute inset-0">
-            <img src={study.heroImage} alt={study.title} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent"></div>
+      <header className="relative min-h-[90vh] flex flex-col justify-end px-6 md:px-12 lg:px-24 pb-24 overflow-hidden">
+        {/* Background Image with Parallax-like fixity */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent z-10" />
+          <div className="absolute inset-0 bg-black/20 z-10" />
+          <img
+            src={study.heroImage}
+            alt={study.title}
+            className={`w-full h-full object-cover transition-transform duration-[2s] ease-out ${isLoaded ? 'scale-105' : 'scale-110 blur-sm'}`}
+          />
         </div>
 
-        <div className="absolute bottom-0 left-0 w-full px-6 pb-24 md:pb-32">
-            <div className="max-w-7xl mx-auto">
-                <div className={`transition-all duration-1000 ${heroInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-                    <div className="flex items-center gap-3 mb-6">
-                        <span className="px-3 py-1 bg-accent text-black font-bold text-xs uppercase tracking-widest rounded-full">{study.category}</span>
-                        <span className="text-gray-300 font-mono text-sm">{study.year}</span>
-                    </div>
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold text-white mb-6 leading-[1.05]">
-                        {study.title}
-                    </h1>
-                    <p className="text-xl md:text-2xl text-gray-300 font-light max-w-2xl leading-relaxed">
-                        {study.subtitle}
-                    </p>
-                </div>
-            </div>
-        </div>
-      </div>
+        <div className={`relative z-20 max-w-7xl transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}>
+          <div className="flex flex-wrap gap-4 mb-8">
+            <span className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-md text-white/90 text-sm font-medium uppercase tracking-wider">
+              {study.category}
+            </span>
+            <span className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-md text-white/90 text-sm font-mono">
+              {study.year}
+            </span>
+          </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-24">
-        
-        {/* Info Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-24 border-b border-border pb-12">
-            <div className="space-y-2">
-                <div className="flex items-center gap-2 text-accent mb-1"><User size={16} /><span className="text-xs uppercase tracking-widest font-mono">Client</span></div>
-                <p className="text-lg font-medium">{study.client}</p>
-            </div>
-            <div className="space-y-2">
-                <div className="flex items-center gap-2 text-accent mb-1"><Calendar size={16} /><span className="text-xs uppercase tracking-widest font-mono">Timeline</span></div>
-                <p className="text-lg font-medium">{study.duration}</p>
-            </div>
-            <div className="space-y-2">
-                <div className="flex items-center gap-2 text-accent mb-1"><Code2 size={16} /><span className="text-xs uppercase tracking-widest font-mono">Role</span></div>
-                <p className="text-lg font-medium">{Array.isArray(study.role) ? study.role.join(", ") : study.role}</p>
-            </div>
-            <div className="space-y-2">
-                <div className="flex items-center gap-2 text-accent mb-1"><Cpu size={16} /><span className="text-xs uppercase tracking-widest font-mono">Tech Stack</span></div>
-                <div className="flex flex-wrap gap-2">
-                    {study.techStack && study.techStack.map((t: string) => (
-                        <span key={t} className="text-sm bg-surface border border-border px-2 py-1 rounded">{t}</span>
-                    ))}
-                </div>
-            </div>
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-medium text-white leading-[0.9] tracking-tight mb-8">
+            {study.title}
+          </h1>
+
+          <p className="text-xl md:text-2xl lg:text-3xl text-white/80 font-light max-w-3xl leading-relaxed">
+            {study.subtitle}
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 md:gap-24">
-            
-            {/* Left Content */}
-            <div ref={contentRef} className="lg:col-span-8 space-y-20">
-                
-                {/* Challenge & Solution */}
-                <div className={`space-y-16 transition-all duration-1000 ${contentInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-                    <section>
-                        <h2 className="text-3xl font-display font-bold mb-6">The Challenge</h2>
-                        <p className="text-lg md:text-xl text-secondary leading-relaxed font-light">
-                            {study.challenge}
-                        </p>
-                    </section>
-                    
-                    <section>
-                        <h2 className="text-3xl font-display font-bold mb-6">The Solution</h2>
-                        <p className="text-lg md:text-xl text-secondary leading-relaxed font-light">
-                            {study.solution}
-                        </p>
-                    </section>
-                </div>
+        <div className="absolute bottom-8 right-8 z-20 animate-bounce text-white/50 hidden md:block">
+          <ArrowDown size={32} />
+        </div>
+      </header>
 
-                {/* Additional Content Blocks */}
-                {study.content && study.content.map((block: any, idx: number) => (
-                    <section key={idx} className="space-y-8">
-                        {block.image && (
-                            <div className="rounded-2xl overflow-hidden border border-border shadow-2xl">
-                                <img src={block.image} alt={block.title} className="w-full object-cover" />
-                            </div>
-                        )}
-                        <h3 className="text-2xl font-display font-bold">{block.title}</h3>
-                        <p className="text-lg text-secondary leading-relaxed">{block.body}</p>
-                    </section>
-                ))}
+      <main className="px-6 md:px-12 lg:px-24 max-w-8xl mx-auto">
 
+        {/* Project Meta Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 py-24 border-b border-border">
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-secondary mb-4">Client</h3>
+            <p className="text-xl font-display text-primary">{study.client}</p>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-secondary mb-4">Timeline</h3>
+            <p className="text-xl font-display text-primary">{study.duration}</p>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-secondary mb-4">Role</h3>
+            <ul className="text-lg text-primary space-y-1">
+              {study.role.map((r: string, i: number) => <li key={i}>{r}</li>)}
+            </ul>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-secondary mb-4">Tech Stack</h3>
+            <div className="flex flex-wrap gap-2">
+              {study.techStack.map((t: string, i: number) => (
+                <span key={i} className="px-3 py-1 rounded-full bg-surface border border-border text-sm text-secondary hover:border-accent/50 transition-colors cursor-default">
+                  {t}
+                </span>
+              ))}
             </div>
+          </div>
+        </div>
 
-            {/* Right Sticky Sidebar (Results) */}
-            <div className="lg:col-span-4 relative">
-                <div ref={statsRef} className={`sticky top-32 transition-all duration-1000 delay-300 ${statsInView ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
-                    <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg">
-                        <h3 className="text-sm font-mono text-accent uppercase tracking-widest mb-8">Key Results</h3>
-                        <div className="space-y-8">
-                            {study.results && study.results.map((res: any, i: number) => (
-                                <div key={i} className="relative group">
-                                    <div className="flex items-baseline gap-2 mb-1">
-                                        <div className="text-4xl md:text-5xl font-display font-medium text-primary">{res.value}</div>
-                                        {res.trend && (
-                                            <div className={`flex items-center gap-1 text-sm font-bold px-2 py-0.5 rounded-full ${
-                                                res.trendDirection === 'up' ? 'bg-green-500/10 text-green-500' :
-                                                res.trendDirection === 'down' ? 'bg-red-500/10 text-red-500' :
-                                                'bg-secondary/10 text-secondary'
-                                            }`}>
-                                                {res.trendDirection === 'up' && <TrendingUp size={12} />}
-                                                {res.trendDirection === 'down' && <TrendingDown size={12} />}
-                                                {res.trend}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="text-sm text-secondary font-medium">{res.label}</div>
-                                    {res.description && (
-                                        <p className="text-xs text-secondary/60 mt-2 leading-relaxed max-w-[200px]">
-                                            {res.description}
-                                        </p>
-                                    )}
-                                    {i !== study.results.length - 1 && <div className="w-full h-px bg-border mt-8"></div>}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+        {/* Challenge & Solution (Sticky Layout) */}
+        <div className="py-24 space-y-32">
 
-                    <TimelineWidget duration={study.duration} year={study.year} />
-
-                    <div className="mt-6 flex gap-4">
-                        <button className="flex-1 py-4 bg-primary text-background rounded-xl font-bold hover:bg-accent hover:text-black transition-all flex items-center justify-center gap-2">
-                             Live Demo <ExternalLink size={18} />
-                        </button>
-                    </div>
-                </div>
+          {/* Challenge Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div className="sticky top-32">
+              <span className="text-accent text-sm font-bold uppercase tracking-widest mb-4 block">01 — The Challenge</span>
+              <h2 className="text-4xl md:text-5xl font-display font-medium text-primary mb-8 leading-tight">
+                Identifying the friction points.
+              </h2>
             </div>
+            <div className="lg:pt-12">
+              <p className="text-xl md:text-2xl text-secondary font-light leading-relaxed mb-12">
+                {study.challenge}
+              </p>
+              <div className="bg-surface p-8 rounded-3xl border border-border">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-3 h-3 rounded-full bg-red-400 animate-pulse" />
+                  <span className="text-sm font-mono text-secondary uppercase">Problem Statement</span>
+                </div>
+                <p className="font-mono text-sm text-primary leading-relaxed">
+                  &gt; SYSTEM_DIAGNOSTIC<br />
+                  &gt; ERROR: Manual processes exceeding SLA thresholds.<br />
+                  &gt; ERROR: Human error rate &gt; 12%.<br />
+                  &gt; STATUS: Critical bottleneck identified.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Solution Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div className="sticky top-32 lg:order-2">
+              <span className="text-accent text-sm font-bold uppercase tracking-widest mb-4 block">02 — The Solution</span>
+              <h2 className="text-4xl md:text-5xl font-display font-medium text-primary mb-8 leading-tight">
+                Engineering a new paradigm.
+              </h2>
+            </div>
+            <div className="lg:pt-12 lg:order-1">
+              <p className="text-xl md:text-2xl text-secondary font-light leading-relaxed mb-12">
+                {study.solution}
+              </p>
+              <div className="aspect-video rounded-3xl overflow-hidden relative group">
+                <img
+                  src={study.content?.[0]?.image || study.heroImage}
+                  alt="Solution Preview"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              </div>
+            </div>
+          </div>
 
         </div>
 
-        {/* Next Project Footer */}
-        <div className="mt-32 border-t border-border pt-20">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                <div>
-                    <span className="text-sm font-mono text-secondary uppercase tracking-widest">Next Project</span>
-                    <h3 className="text-3xl font-display font-bold text-primary mt-2">Ready to see more?</h3>
+        {/* Impact / Results Metrics - Big Typography */}
+        <div className="py-24 border-y border-border">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+            {study.results.map((res: any, i: number) => (
+              <div key={i} className="space-y-4 group cursor-default">
+                <div className="text-6xl md:text-8xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-b from-primary to-primary/50 group-hover:to-accent transition-all duration-500">
+                  {res.value}
                 </div>
-                <button 
-                    onClick={() => onNext(study.nextId)}
-                    className="group flex items-center gap-4 px-8 py-12 md:py-6 bg-surface border border-border rounded-2xl hover:border-accent hover:bg-accent hover:text-black transition-all w-full md:w-auto"
-                >
-                    <div className="text-left">
-                        <span className="block text-xs uppercase tracking-widest opacity-60 mb-1">Up Next</span>
-                        <span className="block text-xl font-bold">{staticCaseStudies[study.nextId]?.title || "Synthetix Legal Core"}</span>
-                    </div>
-                    <div className="w-12 h-12 bg-background rounded-full flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors ml-auto md:ml-4">
-                        <ArrowRight size={20} />
-                    </div>
-                </button>
-            </div>
+                <div className="text-sm font-bold uppercase tracking-widest text-secondary group-hover:text-primary transition-colors">
+                  {res.label}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-      </div>
+        {/* Deep Dive Content Blocks */}
+        <div className="py-32 space-y-40">
+          {study.content?.map((block: any, idx: number) => (
+            <div key={idx} className={`flex flex-col ${idx % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-16 items-center`}>
+              <div className="lg:w-1/2 space-y-8">
+                <span className="text-accent text-sm font-bold uppercase tracking-widest">0{idx + 3} — Deep Dive</span>
+                <h3 className="text-4xl md:text-5xl font-display font-medium text-primary">{block.title}</h3>
+                <p className="text-lg text-secondary leading-relaxed max-w-xl">
+                  {block.body}
+                </p>
+              </div>
+              <div className="lg:w-1/2 w-full">
+                {block.image && (
+                  <div className="aspect-[4/3] rounded-3xl overflow-hidden border border-border shadow-2xl relative group">
+                    <img
+                      src={block.image}
+                      alt={block.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/10 transition-colors duration-500" />
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+      </main>
+
+      {/* Next Project Footer */}
+      <footer className="bg-primary text-background py-32 px-6 md:px-12 lg:px-24 overflow-hidden relative">
+        <div className="max-w-7xl mx-auto relative z-10 text-center">
+          <p className="text-white/40 text-sm font-bold uppercase tracking-widest mb-8">Up Next</p>
+
+          {(() => {
+            const nextId = study.nextId;
+            const nextStudy = staticCaseStudies[nextId];
+            if (!nextStudy) return null;
+
+            return (
+              <button
+                onClick={() => { onNext(nextId); window.scrollTo(0, 0); }}
+                className="group relative inline-block"
+              >
+                <h2 className="text-6xl md:text-8xl lg:text-9xl font-display font-medium text-white group-hover:text-accent transition-colors duration-500">
+                  {nextStudy.title}
+                </h2>
+                <div className="flex items-center justify-center gap-2 mt-8 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0 text-accent">
+                  <span className="text-lg font-mono">View Case Study</span>
+                  <ArrowUpRight size={24} />
+                </div>
+              </button>
+            );
+          })()}
+        </div>
+      </footer>
+
     </div>
   );
 };

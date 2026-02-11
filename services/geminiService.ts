@@ -20,7 +20,7 @@ If asked for a quote, suggest they email him directly.
 
 // Helper to get initialized client
 const getClient = () => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GOOGLE_API_KEY;
   if (!apiKey) {
     throw new Error("API Key missing");
   }
@@ -36,13 +36,13 @@ export interface ChatOptions {
  * Streams a chat response from Gemini with optional capabilities.
  */
 export async function* streamMessageFromGemini(
-  history: {role: 'user' | 'model', text: string}[], 
+  history: { role: 'user' | 'model', text: string }[],
   newMessage: string,
   options: ChatOptions = {}
 ) {
   try {
     const ai = getClient();
-    
+
     let model = 'gemini-3-flash-preview';
     let config: any = {
       systemInstruction: SYSTEM_INSTRUCTION,
@@ -54,7 +54,7 @@ export async function* streamMessageFromGemini(
       // Note: maxOutputTokens should NOT be set when using thinking
     } else if (options.useSearch) {
       // Use flash for search as per instructions
-      model = 'gemini-3-flash-preview'; 
+      model = 'gemini-3-flash-preview';
       config.tools = [{ googleSearch: {} }];
     }
 
@@ -78,25 +78,25 @@ export async function* streamMessageFromGemini(
     }
   } catch (error: any) {
     console.error("Gemini Stream Error:", error);
-    
+
     let errorMessage = "I'm experiencing a temporary glitch in my neural network. Please try asking again in a moment.";
-    
+
     // Robust Error Matching
     const errString = error.toString().toLowerCase();
     const errMessage = error.message?.toLowerCase() || "";
 
     if (errString.includes('api key') || errMessage.includes('api key') || error.status === 401 || error.status === 403) {
-        errorMessage = "System Configuration Error: The API key seems to be missing or invalid. Please check the environment variables.";
+      errorMessage = "System Configuration Error: The API key seems to be missing or invalid. Please check the environment variables.";
     } else if (errMessage.includes('429') || errMessage.includes('quota') || errMessage.includes('exhausted')) {
-        errorMessage = "I'm receiving too many requests right now. Please give me a minute to cool down.";
+      errorMessage = "I'm receiving too many requests right now. Please give me a minute to cool down.";
     } else if (errMessage.includes('503') || errMessage.includes('overloaded')) {
-        errorMessage = "My cognitive servers are currently overloaded. Please try again in a few seconds.";
+      errorMessage = "My cognitive servers are currently overloaded. Please try again in a few seconds.";
     } else if (errMessage.includes('fetch failed') || errMessage.includes('network') || error.status === 0) {
-        errorMessage = "Network connection failed. Please check your internet connection.";
+      errorMessage = "Network connection failed. Please check your internet connection.";
     } else if (errMessage.includes('safety') || errMessage.includes('blocked') || errMessage.includes('content')) {
-        errorMessage = "I cannot generate a response to that specific request due to safety guidelines. Please try rephrasing.";
+      errorMessage = "I cannot generate a response to that specific request due to safety guidelines. Please try rephrasing.";
     } else if (errMessage.includes('400') || errMessage.includes('bad request')) {
-         errorMessage = "I couldn't process that request. It might be too complex or malformed. Try simplifying your prompt.";
+      errorMessage = "I couldn't process that request. It might be too complex or malformed. Try simplifying your prompt.";
     }
 
     yield { text: errorMessage };
@@ -146,7 +146,7 @@ export interface PaletteResult {
 export const generateDesignPalette = async (prompt: string): Promise<PaletteResult | null> => {
   try {
     const ai = getClient();
-    
+
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Generate a premium, harmonious color palette based on this concept: "${prompt}".`,

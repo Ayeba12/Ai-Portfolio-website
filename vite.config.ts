@@ -12,8 +12,7 @@ export default defineConfig(({ mode }) => {
     base: '/Ai-Portfolio-website/',
     plugins: [react()],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+      // 'process.env': {} // handled by import.meta.env
     },
     resolve: {
       alias: {

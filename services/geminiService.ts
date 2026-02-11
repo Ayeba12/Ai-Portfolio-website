@@ -109,7 +109,7 @@ export async function* streamMessageFromGemini(
 export const connectLiveSession = async (
   callbacks: {
     onopen?: () => void;
-    onmessage?: (message: LiveServerMessage) => void;
+    onmessage: (message: LiveServerMessage) => void;
     onclose?: (e: CloseEvent) => void;
     onerror?: (e: ErrorEvent) => void;
   }

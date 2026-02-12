@@ -660,6 +660,7 @@ const DroppableColumn: React.FC<{
                         <Plus size={14} className="group-hover:rotate-90 transition-transform duration-300" /> Add to stage
                     </button>
                 </div>
+
             </div>
         );
     };
@@ -804,6 +805,14 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
         message: string;
         onConfirm: () => void;
     } | null>(null);
+
+    // Toast Notification State
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
 
     // DnD Sensors
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -1445,6 +1454,7 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
             await deleteInquirySB(inquiryDeleteId);
             setInquiryDeleteId(null);
             addActivity('inquiry', 'Deleted message');
+            showToast('Message deleted permanently');
             if (selectedInquiry?.id === inquiryDeleteId) setSelectedInquiry(null);
         }
     };
@@ -1458,21 +1468,30 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
         }
         const inq = inquiries.find(i => i.id === id);
         addActivity('system', `Message from ${inq?.name || 'unknown'} marked as ${newStatus}`);
+        showToast(`Message marked as ${newStatus}`);
     };
 
     const handleArchiveInquiry = async (id: string) => {
         const inq = inquiries.find(i => i.id === id);
-        const updated = inquiries.filter(i => i.id !== id);
+        const updated = inquiries.map(i => i.id === id ? { ...i, status: 'Archived' } : i);
         setInquiries(updated);
-        await deleteInquirySB(id);
+        await updateInquiryStatusSB(id, 'Archived');
         if (selectedInquiry?.id === id) setSelectedInquiry(null);
         addActivity('system', `Archived message from ${inq?.name || 'unknown'}`);
+        showToast('Message archived successfully');
     };
 
     const getFilteredInquiries = () => {
         let filtered = inquiries;
-        if (inboxFilter === 'Unread') filtered = filtered.filter(i => i.status === 'New');
-        if (inboxFilter === 'Project') filtered = filtered.filter(i => i.type === 'Project Request');
+        if (inboxFilter === 'Archived') {
+            filtered = filtered.filter(i => i.status === 'Archived');
+        } else {
+            // Hide archived messages from other views unless explicitly implemented otherwise
+            filtered = filtered.filter(i => i.status !== 'Archived');
+
+            if (inboxFilter === 'Unread') filtered = filtered.filter(i => i.status === 'New');
+            if (inboxFilter === 'Project') filtered = filtered.filter(i => i.type === 'Project Request');
+        }
         if (inboxSearchQuery) {
             const q = inboxSearchQuery.toLowerCase();
             filtered = filtered.filter(i =>
@@ -2523,8 +2542,8 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                             ${selectedInquiry ? 'hidden lg:flex' : 'flex'}
                         `}>
                                     {/* Filters */}
-                                    <div className="p-2 border-b border-border flex gap-1">
-                                        {['All', 'Unread', 'Project'].map(filter => (
+                                    <div className="p-2 border-b border-border flex gap-1 overflow-x-auto scrollbar-hide">
+                                        {['All', 'Unread', 'Project', 'Archived'].map(filter => (
                                             <button
                                                 key={filter}
                                                 onClick={() => setInboxFilter(filter)}
@@ -2603,6 +2622,14 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                                                     >
                                                         <Archive size={18} />
                                                     </button>
+                                                    {selectedInquiry.status === 'Archived' && (
+                                                        <button
+                                                            onClick={() => handleUpdateInquiryStatus(selectedInquiry.id, 'New')}
+                                                            className="p-2 text-secondary hover:text-primary hover:bg-surface rounded-xl transition-colors" title="Move to Inbox"
+                                                        >
+                                                            <Inbox size={18} />
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => { setInquiryDeleteId(selectedInquiry.id); }}
                                                         className="p-2 text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors" title="Delete"

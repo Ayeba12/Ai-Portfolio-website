@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       host: '0.0.0.0',
     },
-    base: '/Ai-Portfolio-website/',
+
     plugins: [react()],
     define: {
       // 'process.env': {} // handled by import.meta.env

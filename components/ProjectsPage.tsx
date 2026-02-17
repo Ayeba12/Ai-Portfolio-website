@@ -141,9 +141,10 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenCaseStudy }) =
 
     // Listen for live updates
     useEffect(() => {
-        const handleConfigUpdate = (e: CustomEvent) => {
-            if (e.detail?.heroAvatar !== undefined) {
-                setAvatar(e.detail.heroAvatar || '/avatar.jpg');
+        const handleConfigUpdate = (e: any) => {
+            const data = e instanceof CustomEvent ? e.detail : e.data;
+            if (data?.heroAvatar !== undefined) {
+                setAvatar(data.heroAvatar || '/avatar.jpg');
             }
         };
 
@@ -151,12 +152,23 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenCaseStudy }) =
             loadProjects();
         };
 
+        const projectChannel = new BroadcastChannel('portfolio_updates');
+        projectChannel.onmessage = (e) => {
+            if (e.data.type === 'project') handleProjectsUpdate();
+            if (e.data.type === 'site-config') handleConfigUpdate(e);
+        };
+
+        const configChannel = new BroadcastChannel('site_config_updates');
+        configChannel.onmessage = handleConfigUpdate;
+
         window.addEventListener('site-config-update', handleConfigUpdate as EventListener);
         window.addEventListener('site-projects-update', handleProjectsUpdate as EventListener);
 
         return () => {
             window.removeEventListener('site-config-update', handleConfigUpdate as EventListener);
             window.removeEventListener('site-projects-update', handleProjectsUpdate as EventListener);
+            projectChannel.close();
+            configChannel.close();
         };
     }, []);
 

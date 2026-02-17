@@ -196,7 +196,8 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onNavigate, onOpenCaseStud
             year: p.date?.split(' ')?.[1] || '2024',
             client: '',
             links: { live: '#' },
-          }));
+          }))
+          .sort((a, b) => (b.id as number) - (a.id as number));
         setAllProjects(mapped);
       } else {
         setAllProjects(defaultProjects);
@@ -214,8 +215,14 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onNavigate, onOpenCaseStud
       loadProjects();
     };
 
+    const projectChannel = new BroadcastChannel('portfolio_updates');
+    projectChannel.onmessage = handleUpdate;
+
     window.addEventListener('site-projects-update', handleUpdate as EventListener);
-    return () => window.removeEventListener('site-projects-update', handleUpdate as EventListener);
+    return () => {
+      window.removeEventListener('site-projects-update', handleUpdate as EventListener);
+      projectChannel.close();
+    };
   }, []);
 
   const filteredProjects = allProjects.filter(project => {

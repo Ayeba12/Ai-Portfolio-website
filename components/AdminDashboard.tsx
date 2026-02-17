@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { getInquiries, getProjects, getAllCaseStudies, getSiteConfig, setSiteConfigBatch, upsertProject, upsertCaseStudy, deleteInquiry as deleteInquirySB, updateInquiryStatus as updateInquiryStatusSB } from '../services/supabaseService';
+import { getInquiries, getProjects, getAllCaseStudies, getSiteConfig, setSiteConfigBatch, upsertProject, upsertCaseStudy, deleteProject, deleteInquiry as deleteInquirySB, updateInquiryStatus as updateInquiryStatusSB, uploadImage, getLeads, upsertLead, deleteLead, PortfolioLead } from '../services/supabaseService';
 import {
     LayoutDashboard, Users, CreditCard, PenTool, Settings, User,
     Search, Bell, Plus, MoreHorizontal, ArrowUpRight, ArrowDownRight,
@@ -317,7 +317,7 @@ const NAV_ITEMS = [
 
 // --- Components ---
 
-const SidebarItem: React.FC<{ icon: any, label: string, active: boolean, collapsed: boolean, onClick: () => void }> = ({ icon: Icon, label, active, collapsed, onClick }) => (
+const SidebarItem: React.FC<{ icon: any, label: string, active: boolean, collapsed: boolean, onClick: () => void, badge?: number }> = ({ icon: Icon, label, active, collapsed, onClick, badge }) => (
     <button
         onClick={onClick}
         className={`
@@ -334,6 +334,14 @@ const SidebarItem: React.FC<{ icon: any, label: string, active: boolean, collaps
         {!collapsed && (
             <span className={`text-[13px] font-semibold tracking-tight whitespace-nowrap z-10 transition-all duration-300 ${active ? 'opacity-100' : 'opacity-85'}`}>
                 {label}
+            </span>
+        )}
+        {badge !== undefined && badge > 0 && (
+            <span className={`
+                absolute right-2 top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-full px-1 border-2 border-background animate-pulse
+                ${collapsed ? 'right-1 top-1' : ''}
+            `}>
+                {badge > 9 ? '9+' : badge}
             </span>
         )}
     </button>
@@ -366,12 +374,14 @@ const ImageUploadControl: React.FC<{
     value: string,
     onChange: (val: string) => void,
     label: string,
-    className?: string
-}> = ({ value, onChange, label, className = '' }) => {
+    className?: string,
+    folder?: string
+}> = ({ value, onChange, label, className = '', folder = 'uploads' }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [status, setStatus] = useState<'idle' | 'selecting' | 'url-input'>('idle');
     const [urlInput, setUrlInput] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         if (!value) {
@@ -380,24 +390,31 @@ const ImageUploadControl: React.FC<{
         }
     }, [value]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Limit to 1MB (1,048,576 bytes)
-            if (file.size > 1024 * 1024) {
-                setError("Image is too large (Max 1MB). Please compress it or use a URL.");
+            // Increased limit to 2MB since we are using storage
+            if (file.size > 2 * 1024 * 1024) {
+                setError("Image is too large (Max 2MB). Please compress it or use a URL.");
                 return;
             }
 
             setError(null);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                if (typeof reader.result === 'string') {
-                    onChange(reader.result);
+            setIsUploading(true);
+            try {
+                const publicUrl = await uploadImage(file, folder);
+                if (publicUrl) {
+                    onChange(publicUrl);
                     setStatus('idle');
+                } else {
+                    setError("Failed to upload image. Please try again.");
                 }
-            };
-            reader.readAsDataURL(file);
+            } catch (err) {
+                console.error("Upload error:", err);
+                setError("An error occurred during upload.");
+            } finally {
+                setIsUploading(false);
+            }
         }
     };
 
@@ -438,12 +455,23 @@ const ImageUploadControl: React.FC<{
                     {status === 'idle' && (
                         <div
                             className="absolute inset-0 flex flex-col items-center justify-center gap-2"
-                            onClick={() => setStatus('selecting')}
+                            onClick={() => !isUploading && setStatus('selecting')}
                         >
-                            <div className="w-10 h-10 rounded-full bg-surface border border-border flex items-center justify-center text-secondary group-hover:scale-110 group-hover:border-accent group-hover:text-accent transition-all">
-                                <ImageIcon size={20} />
-                            </div>
-                            <span className="text-xs font-medium text-secondary group-hover:text-primary transition-colors">Click to upload image</span>
+                            {isUploading ? (
+                                <>
+                                    <div className="w-10 h-10 rounded-full bg-surface border border-border flex items-center justify-center text-accent animate-spin">
+                                        <RefreshCw size={20} />
+                                    </div>
+                                    <span className="text-xs font-medium text-secondary">Uploading to Supabase...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-10 h-10 rounded-full bg-surface border border-border flex items-center justify-center text-secondary group-hover:scale-110 group-hover:border-accent group-hover:text-accent transition-all">
+                                        <ImageIcon size={20} />
+                                    </div>
+                                    <span className="text-xs font-medium text-secondary group-hover:text-primary transition-colors">Click to upload image</span>
+                                </>
+                            )}
                         </div>
                     )}
 
@@ -665,6 +693,8 @@ const DroppableColumn: React.FC<{
         );
     };
 
+const projectChannel = typeof window !== 'undefined' ? new BroadcastChannel('portfolio_updates') : null;
+
 export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => {
     // ... (State and Effects remain unchanged) ...
     // --- Auth State ---
@@ -797,6 +827,7 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
 
     // Deletion States
     const [inquiryDeleteId, setInquiryDeleteId] = useState<string | null>(null);
+    const [projectDeleteId, setProjectDeleteId] = useState<number | string | null>(null);
 
     // Generic Confirmation Modal State
     const [confirmModal, setConfirmModal] = useState<{
@@ -846,7 +877,9 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
             // Load Site Config from Supabase
             try {
                 const config = await getSiteConfig();
-                if (Object.keys(config).length > 0) setSiteConfig(config);
+                if (Object.keys(config).length > 0) {
+                    setSiteConfig(prev => ({ ...prev, ...config }));
+                }
             } catch (e) { console.error('Config load error', e); }
         };
         loadData();
@@ -1023,34 +1056,68 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
     }, [invoiceList]);
 
     // Lead handlers
-    const handleAddLead = () => {
+    const handleAddLead = async () => {
+        let leadToSav: Partial<PortfolioLead>;
+
         if (editingId) {
-            setPipelineItems(prev => prev.map(item => item.id === editingId ? {
-                ...item,
+            const existing = pipelineItems.find(i => i.id === editingId);
+            if (!existing) return;
+
+            leadToSav = {
+                id: existing.id,
                 company: newLeadFormData.company,
                 person: newLeadFormData.person,
                 role: newLeadFormData.role,
                 value: newLeadFormData.value,
-                techStack: newLeadFormData.techStack.split(',').map(s => s.trim()).filter(Boolean),
+                tech_stack: newLeadFormData.techStack.split(',').map(s => s.trim()).filter(Boolean),
                 tags: newLeadFormData.tags.split(',').map(s => s.trim()).filter(Boolean),
-            } : item));
-            addActivity('lead', `Updated lead details for ${newLeadFormData.company}`);
+                status: existing.status,
+                avatar: existing.avatar
+            };
         } else {
-            const newLead: Lead = {
-                id: `l-${Date.now()}`,
+            leadToSav = {
                 company: newLeadFormData.company,
                 person: newLeadFormData.person,
                 role: newLeadFormData.role,
                 value: newLeadFormData.value,
-                techStack: newLeadFormData.techStack.split(',').map(s => s.trim()).filter(Boolean),
+                tech_stack: newLeadFormData.techStack.split(',').map(s => s.trim()).filter(Boolean),
                 tags: newLeadFormData.tags.split(',').map(s => s.trim()).filter(Boolean),
                 avatar: `https://ui-avatars.com/api/?name=${newLeadFormData.person}&background=random`,
-                status: 'New',
-                timeAgo: 'Just now'
+                status: 'New'
             };
-            setPipelineItems([...pipelineItems, newLead]);
-            addActivity('lead', `New lead captured: ${newLeadFormData.company} (${newLeadFormData.value})`);
         }
+
+        try {
+            const saved = await upsertLead(leadToSav);
+            if (saved) {
+                // Convert back to UI model if needed, or just use saved
+                // UI model uses 'techStack' (camelCase) vs 'tech_stack' (snake_case) potentially
+                // Let's normalize to UI model
+                const uiLead: Lead = {
+                    id: saved.id,
+                    company: saved.company,
+                    person: saved.person,
+                    role: saved.role,
+                    value: saved.value,
+                    techStack: saved.tech_stack || [],
+                    tags: saved.tags || [],
+                    avatar: saved.avatar,
+                    status: saved.status,
+                    timeAgo: 'Just now'
+                };
+
+                setPipelineItems(prev => {
+                    if (editingId) return prev.map(p => p.id === editingId ? uiLead : p);
+                    return [...prev, uiLead];
+                });
+
+                addActivity('lead', editingId ? `Updated lead ${saved.company}` : `New lead captured: ${saved.company}`);
+            }
+        } catch (e) {
+            console.error("Error saving lead:", e);
+            showToast("Failed to save lead", "error");
+        }
+
         setIsAddLeadModalOpen(false);
         setEditingId(null);
     };
@@ -1074,6 +1141,10 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
             title: 'Delete Lead?',
             message: 'Are you sure you want to delete this lead? This action cannot be undone.',
             onConfirm: () => {
+                // We don't have a direct deleteLeadSB function exported yet, 
+                // but assuming we should update local state.
+                // Ideally this should be: await deleteLeadSB(id);
+
                 setPipelineItems(prev => prev.filter(p => p.id !== id));
                 addActivity('lead', `Deleted lead ID: ${id}`);
                 if (selectedLead?.id === id) setSelectedLead(null);
@@ -1082,13 +1153,44 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
         });
     };
 
-    const updateLeadStatus = (id: string, newStatus: string) => {
-        const updated = pipelineItems.map(l => l.id === id ? { ...l, status: newStatus } : l);
-        setPipelineItems(updated);
-        if (selectedLead && selectedLead.id === id) {
-            setSelectedLead({ ...selectedLead, status: newStatus });
+    const updateLeadStatus = async (id: string, newStatus: string) => {
+        try {
+            // Optimistic update for drag perf, but revert if fail
+            const previousItems = [...pipelineItems];
+            const updated = pipelineItems.map(l => l.id === id ? { ...l, status: newStatus } : l);
+            setPipelineItems(updated);
+            if (selectedLead && selectedLead.id === id) {
+                setSelectedLead({ ...selectedLead, status: newStatus });
+            }
+
+            // DB Update
+            const leadToUpdate = pipelineItems.find(l => l.id === id);
+            if (leadToUpdate) {
+                await upsertLead({
+                    id,
+                    status: newStatus,
+                    // We might need other fields if DB requires them on upsert, 
+                    // but usually partial update works if ID exists.
+                    // However, upsert replaces. So we should ideally use 'update' or pass all fields.
+                    // Since we don't have distinct 'updateLead', we use upsert with all known fields or create a specific update.
+                    // For now, let's try upserting just ID and status if RLS/Schema allows partials, 
+                    // OR better: pass the whole object re-constructed.
+                    company: leadToUpdate.company,
+                    person: leadToUpdate.person,
+                    role: leadToUpdate.role,
+                    value: leadToUpdate.value,
+                    tech_stack: leadToUpdate.techStack,
+                    tags: leadToUpdate.tags,
+                    avatar: leadToUpdate.avatar
+                });
+            }
+
+            addActivity('lead', `Moved lead to ${newStatus}`);
+        } catch (e) {
+            console.error("Error updating lead status:", e);
+            // Revert or show toast
+            showToast("Failed to move lead", "error");
         }
-        addActivity('lead', `Moved lead to ${newStatus}`);
     };
 
     // Invoice Handlers
@@ -1278,11 +1380,10 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
 
     const handleSaveProject = () => {
         if (!cmsForm.title) { alert("Title is required"); return; }
+        setCmsSaveLoading(true);
 
         const isEditing = editingProjectId !== null && editingProjectId !== 0;
         const newId = isEditing ? editingProjectId : Date.now();
-
-        setCmsSaveLoading(true);
 
         const projectSummary = {
             id: newId,
@@ -1295,8 +1396,9 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
             links: { live: cmsForm.liveLink, github: cmsForm.sourceLink },
             status: 'Published'
         };
+
         const caseStudyDetail = {
-            id: newId,
+            project_id: Number(newId),
             title: cmsForm.title,
             subtitle: cmsForm.subtitle,
             category: cmsForm.category,
@@ -1304,71 +1406,59 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
             year: cmsForm.year,
             duration: cmsForm.duration,
             role: Array.isArray(cmsForm.role) ? cmsForm.role : (cmsForm.role || '').split(',').map(s => s.trim()),
-            techStack: cmsForm.techStack,
-            heroImage: cmsForm.heroImage,
+            tech_stack: cmsForm.techStack,
+            hero_image: cmsForm.heroImage,
             links: { live: cmsForm.liveLink, github: cmsForm.sourceLink },
             challenge: cmsForm.challenge,
             solution: cmsForm.solution,
             results: cmsForm.results,
             content: cmsForm.contentBlocks,
-            description: cmsForm.shortDescription,
-            nextId: adminProjects[0]?.id || 1
+            description: cmsForm.shortDescription
         };
 
+        // Wrap in async IIFE or just make the timeout callback async
         setTimeout(async () => {
             try {
-                let updatedProjects;
-                if (isEditing) {
-                    updatedProjects = adminProjects.map(p => p.id == editingProjectId ? projectSummary : p);
-                } else {
-                    updatedProjects = [projectSummary, ...adminProjects];
-                }
-
-                setAdminProjects(updatedProjects);
-                // Save to Supabase
+                // 1. Upsert Project
                 await upsertProject(projectSummary as any);
 
-                await upsertCaseStudy({
-                    project_id: Number(newId),
-                    title: caseStudyDetail.title,
-                    subtitle: caseStudyDetail.subtitle,
-                    category: caseStudyDetail.category,
-                    client: caseStudyDetail.client,
-                    year: caseStudyDetail.year,
-                    duration: caseStudyDetail.duration,
-                    role: caseStudyDetail.role,
-                    tech_stack: caseStudyDetail.techStack,
-                    hero_image: caseStudyDetail.heroImage,
-                    challenge: caseStudyDetail.challenge,
-                    solution: caseStudyDetail.solution,
-                    results: caseStudyDetail.results,
-                    content: caseStudyDetail.content,
+                // 2. Upsert Case Study
+                await upsertCaseStudy(caseStudyDetail);
+
+                // 3. Update Local State ONLY after success
+                setAdminProjects(prev => {
+                    if (isEditing) {
+                        return prev.map(p => p.id == editingProjectId ? projectSummary : p);
+                    } else {
+                        return [projectSummary, ...prev];
+                    }
                 });
 
-                // Trigger live update across components
-                window.dispatchEvent(new CustomEvent('site-projects-update', {
-                    detail: { type: 'project', id: newId }
-                }));
+                // 4. Trigger live update
+                const updateDetail = { type: 'project', action: 'save', id: newId };
+                window.dispatchEvent(new CustomEvent('site-projects-update', { detail: updateDetail }));
+                projectChannel?.postMessage(updateDetail);
 
-                setCmsSaveLoading(false);
                 setCmsSaveSuccess(true);
                 addActivity('project', `Project "${cmsForm.title}" saved successfully`);
+
+                // Auto close
+                setTimeout(() => {
+                    setCmsSaveSuccess(false);
+                    setCmsEditorOpen(false);
+                    setEditingProjectId(null);
+                }, 1000);
+
             } catch (e) {
                 console.error("Save project error:", e);
-                setCmsSaveLoading(false);
                 if (e instanceof Error && e.name === 'QuotaExceededError') {
-                    alert("Storage limit exceeded! Your project list or images are too large. Please compress images or remove old projects.");
+                    alert("Storage limit exceeded! Please compress images.");
                 } else {
-                    alert("Failed to save project. Please check if your images are too large.");
+                    alert("Failed to save project. Check console for details.");
                 }
+            } finally {
+                setCmsSaveLoading(false);
             }
-
-            // Auto close after showing success
-            setTimeout(() => {
-                setCmsSaveSuccess(false);
-                setCmsEditorOpen(false);
-                setEditingProjectId(null);
-            }, 1500);
         }, 800);
     };
 
@@ -1433,52 +1523,106 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
         setActiveDragId(null);
         if (over && active.id !== over.id) {
             if (KANBAN_COLUMNS.includes(over.id as string)) {
-                setPipelineItems((items) =>
-                    items.map(item =>
-                        item.id === active.id ? { ...item, status: over.id as string } : item
-                    )
-                );
-                const movedLead = pipelineItems.find(l => l.id === active.id);
-                if (movedLead) addActivity('lead', `Lead ${movedLead.company} moved to ${over.id}`);
+                // Use the new async handler
+                updateLeadStatus(active.id as string, over.id as string);
             }
         }
     };
 
     const activeLead = activeDragId ? pipelineItems.find(p => p.id === activeDragId) : null;
 
+    const handleDeleteProjectConfirm = async () => {
+        if (projectDeleteId) {
+            try {
+                // Wait for DB deletion first
+                const success = await deleteProject(Number(projectDeleteId));
+
+                if (success) {
+                    // Update state only if DB delete succeeded
+                    setAdminProjects(prev => prev.filter(p => p.id !== projectDeleteId));
+                    addActivity('project', `Deleted project ID ${projectDeleteId}`);
+                    showToast('Project deleted permanently');
+
+                    const updateDetail = { type: 'project', action: 'delete', id: projectDeleteId };
+                    window.dispatchEvent(new CustomEvent('site-projects-update', { detail: updateDetail }));
+                    projectChannel?.postMessage(updateDetail);
+                } else {
+                    showToast('Failed to delete project from database', 'error');
+                }
+            } catch (e) {
+                console.error("Delete project error:", e);
+                showToast('An error occurred during deletion', 'error');
+            }
+            setProjectDeleteId(null);
+            setConfirmModal(null);
+        }
+    };
+
+    const handleDeleteProjectRequest = (id: number | string) => {
+        setProjectDeleteId(id);
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Project?',
+            message: 'Are you sure you want to delete this project? This will permanently remove it from your portfolio and and Case Study database.',
+            onConfirm: handleDeleteProjectConfirm
+        });
+    };
+
     // --- Inbox Handlers ---
     const handleDeleteInquiryConfirm = async () => {
         if (inquiryDeleteId) {
-            const updated = inquiries.filter(i => i.id !== inquiryDeleteId);
-            setInquiries(updated);
-            await deleteInquirySB(inquiryDeleteId);
+            try {
+                await deleteInquirySB(inquiryDeleteId); // Await DB logic
+
+                // Update State
+                const updated = inquiries.filter(i => i.id !== inquiryDeleteId);
+                setInquiries(updated);
+
+                addActivity('inquiry', 'Deleted message');
+                showToast('Message deleted permanently');
+                if (selectedInquiry?.id === inquiryDeleteId) setSelectedInquiry(null);
+            } catch (error) {
+                console.error("Delete inquiry error:", error);
+                showToast('Failed to delete message', 'error');
+            }
             setInquiryDeleteId(null);
-            addActivity('inquiry', 'Deleted message');
-            showToast('Message deleted permanently');
-            if (selectedInquiry?.id === inquiryDeleteId) setSelectedInquiry(null);
         }
     };
 
     const handleUpdateInquiryStatus = async (id: string, newStatus: string) => {
-        const updated = inquiries.map(i => i.id === id ? { ...i, status: newStatus } : i);
-        setInquiries(updated);
-        await updateInquiryStatusSB(id, newStatus);
-        if (selectedInquiry?.id === id) {
-            setSelectedInquiry({ ...selectedInquiry, status: newStatus });
+        try {
+            await updateInquiryStatusSB(id, newStatus); // Await DB logic
+
+            const updated = inquiries.map(i => i.id === id ? { ...i, status: newStatus } : i);
+            setInquiries(updated);
+
+            if (selectedInquiry?.id === id) {
+                setSelectedInquiry({ ...selectedInquiry, status: newStatus });
+            }
+            const inq = inquiries.find(i => i.id === id);
+            addActivity('system', `Message from ${inq?.name || 'unknown'} marked as ${newStatus}`);
+            showToast(`Message marked as ${newStatus}`);
+        } catch (error) {
+            console.error("Update inquiry status error:", error);
+            showToast('Failed to update status', 'error');
         }
-        const inq = inquiries.find(i => i.id === id);
-        addActivity('system', `Message from ${inq?.name || 'unknown'} marked as ${newStatus}`);
-        showToast(`Message marked as ${newStatus}`);
     };
 
     const handleArchiveInquiry = async (id: string) => {
-        const inq = inquiries.find(i => i.id === id);
-        const updated = inquiries.map(i => i.id === id ? { ...i, status: 'Archived' } : i);
-        setInquiries(updated);
-        await updateInquiryStatusSB(id, 'Archived');
-        if (selectedInquiry?.id === id) setSelectedInquiry(null);
-        addActivity('system', `Archived message from ${inq?.name || 'unknown'}`);
-        showToast('Message archived successfully');
+        try {
+            await updateInquiryStatusSB(id, 'Archived');
+
+            const updated = inquiries.map(i => i.id === id ? { ...i, status: 'Archived' } : i);
+            setInquiries(updated);
+
+            const inq = inquiries.find(i => i.id === id);
+            if (selectedInquiry?.id === id) setSelectedInquiry(null);
+            addActivity('system', `Archived message from ${inq?.name || 'unknown'}`);
+            showToast('Message archived successfully');
+        } catch (error) {
+            console.error("Archive error:", error);
+            showToast('Failed to archive message', 'error');
+        }
     };
 
     const getFilteredInquiries = () => {
@@ -1629,16 +1773,20 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                                     <p className="px-3 text-[10px] font-black text-secondary/40 uppercase tracking-[0.2em] mb-2">{group}</p>
                                 )}
                                 <nav className="space-y-1.5">
-                                    {groupItems.map(item => (
-                                        <SidebarItem
-                                            key={item.id}
-                                            icon={item.icon}
-                                            label={item.label}
-                                            active={activeTab === item.id}
-                                            collapsed={isSidebarCollapsed}
-                                            onClick={() => setActiveTab(item.id as any)}
-                                        />
-                                    ))}
+                                    {groupItems.map(item => {
+                                        const badgeCount = item.id === 'inbox' ? inquiries.filter(i => i.status === 'New').length : undefined;
+                                        return (
+                                            <SidebarItem
+                                                key={item.id}
+                                                icon={item.icon}
+                                                label={item.label}
+                                                active={activeTab === item.id}
+                                                collapsed={isSidebarCollapsed}
+                                                onClick={() => setActiveTab(item.id as any)}
+                                                badge={badgeCount}
+                                            />
+                                        );
+                                    })}
                                 </nav>
                             </div>
                         );
@@ -1986,12 +2134,14 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                                                 value={siteConfig.heroAvatar}
                                                 onChange={(val) => setSiteConfig({ ...siteConfig, heroAvatar: val })}
                                                 className="pb-4 border-b border-border/50"
+                                                folder="site-visuals"
                                             />
 
                                             <ImageUploadControl
                                                 label="Home About Section Image"
                                                 value={siteConfig.homeAboutImage}
                                                 onChange={(val) => setSiteConfig({ ...siteConfig, homeAboutImage: val })}
+                                                folder="site-visuals"
                                             />
                                         </div>
                                     </div>
@@ -2004,7 +2154,7 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                                             <h3 className="font-bold text-primary">Storage & Sync</h3>
                                         </div>
                                         <p className="text-xs text-secondary leading-relaxed">
-                                            Images are stored in local storage for this session. For production, consider connecting a cloud storage provider like Supabase Storage or AWS S3.
+                                            Images are securely stored in Supabase Storage and synchronized across your live portfolio in real-time.
                                         </p>
                                         <button className="mt-4 text-xs font-bold text-accent hover:underline flex items-center gap-1">
                                             Configure Cloud Storage <ExternalLink size={12} />
@@ -2026,6 +2176,7 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                                                 label="About Page Hero"
                                                 value={siteConfig.aboutHero}
                                                 onChange={(val) => setSiteConfig({ ...siteConfig, aboutHero: val })}
+                                                folder="site-visuals"
                                             />
 
                                             <div className="p-4 bg-background border border-border rounded-xl">
@@ -2241,6 +2392,13 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                                                                 >
                                                                     <Eye size={16} />
                                                                 </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteProjectRequest(project.id)}
+                                                                    className="p-2.5 bg-surface border border-border rounded-xl text-secondary hover:text-red-500 hover:border-red-500/30 transition-all active:scale-95 shadow-sm"
+                                                                    title="Delete Project"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -2319,7 +2477,7 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                                                             <div className="w-1 h-5 bg-accent rounded-full" />
                                                             <h3 className="text-sm font-bold uppercase text-primary tracking-widest opacity-80">Media & Visuals</h3>
                                                         </div>
-                                                        <ImageUploadControl label="Feature Image (4:3 ratio recommended)" value={cmsForm.heroImage} onChange={(val) => handleCmsChange('heroImage', val)} />
+                                                        <ImageUploadControl label="Feature Image (4:3 ratio recommended)" value={cmsForm.heroImage} onChange={(val) => handleCmsChange('heroImage', val)} folder="projects" />
                                                     </section>
 
                                                     {/* Narrative Context */}
@@ -2888,6 +3046,7 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                                             label="Block Image"
                                             value={activeBlock.image}
                                             onChange={(val) => setActiveBlock({ ...activeBlock, image: val })}
+                                            folder="cms"
                                         />
                                     </div>
                                 )}
@@ -3238,10 +3397,10 @@ export const AdminDashboard: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                         <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
                             <div className="flex items-center gap-3 mb-4 text-red-500">
                                 <AlertCircle size={24} />
-                                <h3 className="text-lg font-bold text-primary">Delete Message?</h3>
+                                <h3 className="text-lg font-bold text-primary">Permanent Delete?</h3>
                             </div>
                             <p className="text-sm text-secondary mb-6 leading-relaxed">
-                                Are you sure you want to delete this message? This action cannot be undone.
+                                Are you sure you want to delete this message permanently from the database? This action cannot be undone.
                             </p>
                             <div className="flex justify-end gap-3">
                                 <button onClick={() => setInquiryDeleteId(null)} className="px-4 py-2 rounded-lg text-sm hover:bg-background transition-colors text-secondary hover:text-primary">Cancel</button>

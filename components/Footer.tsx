@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowUp, Lock } from 'lucide-react';
 
 interface FooterProps {
-    onNavigate: (page: string) => void;
+  onNavigate: (page: string) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
@@ -11,29 +11,29 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   };
 
   const handleNav = (page: string, id?: string) => {
-      onNavigate(page);
-      if (id) {
-          setTimeout(() => {
-              document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
-      } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+    onNavigate(page);
+    if (id) {
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
     <footer className="bg-background border-t border-border pt-20 pb-10">
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-          
+
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-primary text-background rounded-xl flex items-center justify-center font-display font-bold text-lg shadow-lg">
-                  SA
-                </div>
-                <span className="font-display font-bold text-xl tracking-tight text-primary">
-                  Sam<span className="text-accent">.</span>
-                </span>
+              <div className="w-10 h-10 bg-primary text-background rounded-xl flex items-center justify-center font-display font-bold text-lg shadow-lg">
+                SA
+              </div>
+              <span className="font-display font-bold text-xl tracking-tight text-primary">
+                Sam<span className="text-accent">.</span>
+              </span>
             </div>
             <p className="text-secondary text-sm leading-relaxed">
               Crafting intelligent digital experiences that scale. Based remotely, working globally.
@@ -53,9 +53,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div>
             <h4 className="font-bold text-primary mb-6">Socials</h4>
             <ul className="space-y-4 text-sm text-secondary">
-              <li><a href="#" className="hover:text-accent transition-colors" aria-label="LinkedIn">LinkedIn</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors" aria-label="Twitter">Twitter / X</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors" aria-label="GitHub">GitHub</a></li>
+              <li><a href="https://www.linkedin.com/in/sam-ayebanate/" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors" aria-label="LinkedIn">LinkedIn</a></li>
+              <li><a href="https://x.com/AyebaDevs" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors" aria-label="X (formerly Twitter)">X / Twitter</a></li>
+              <li><a href="https://github.com/Ayeba12" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors" aria-label="GitHub">GitHub</a></li>
               <li><a href="#" className="hover:text-accent transition-colors" aria-label="Instagram">Instagram</a></li>
             </ul>
           </div>
@@ -67,7 +67,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li><button onClick={() => onNavigate('terms')} className="hover:text-accent transition-colors text-left">Terms of Service</button></li>
               <li>
                 <button onClick={() => onNavigate('admin')} className="flex items-center gap-2 hover:text-accent transition-colors text-left opacity-50 hover:opacity-100">
-                   <Lock size={12} /> Admin
+                  <Lock size={12} /> Admin
                 </button>
               </li>
             </ul>
@@ -78,8 +78,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div className="text-secondary text-xs">
             © {new Date().getFullYear()} Sam Ayebanate. All rights reserved. Built with React, Tailwind & Gemini.
           </div>
-          
-          <button 
+
+          <button
             onClick={scrollToTop}
             className="group flex items-center gap-2 text-xs font-medium text-primary hover:text-accent transition-colors"
             aria-label="Scroll back to top"

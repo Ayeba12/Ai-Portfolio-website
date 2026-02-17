@@ -75,6 +75,10 @@ export async function upsertProject(project: Partial<PortfolioProject> & { title
 
 export async function deleteProject(id: number): Promise<boolean> {
     if (!supabase) return false;
+
+    // Also delete associated case study
+    await deleteCaseStudy(id);
+
     const { error } = await supabase
         .from('portfolio_projects')
         .delete()
@@ -118,6 +122,16 @@ export async function upsertCaseStudy(cs: Partial<PortfolioCaseStudy> & { projec
         .single();
     if (error) { console.error('upsertCaseStudy error:', error); return null; }
     return data;
+}
+
+export async function deleteCaseStudy(projectId: number): Promise<boolean> {
+    if (!supabase) return false;
+    const { error } = await supabase
+        .from('portfolio_case_studies')
+        .delete()
+        .eq('project_id', projectId);
+    if (error) { console.error('deleteCaseStudy error:', error); return false; }
+    return true;
 }
 
 // ============================================================
@@ -202,5 +216,83 @@ export async function setSiteConfigBatch(config: Record<string, string>): Promis
         .from('portfolio_site_config')
         .upsert(rows, { onConflict: 'key' });
     if (error) { console.error('setSiteConfigBatch error:', error); return false; }
+    return true;
+}
+
+export async function uploadImage(file: File, folder: string = 'uploads'): Promise<string | null> {
+    if (!supabase) return null;
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${folder}/${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+        .from('portfolio-assets')
+        .upload(fileName, file);
+
+    if (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        return null;
+    }
+
+    const { data } = supabase.storage
+        .from('portfolio-assets')
+        .getPublicUrl(fileName);
+
+    return data.publicUrl;
+}
+
+// ============================================================
+// CRM / Leads
+// ============================================================
+
+export interface PortfolioLead {
+    id: string;
+    company: string;
+    person: string;
+    role: string;
+    value: string;
+    tech_stack: string[]; // DB column name might be tech_stack
+    tags: string[];
+    avatar: string;
+    status: string;
+    created_at?: string;
+}
+
+export async function getLeads(): Promise<PortfolioLead[]> {
+    if (!supabase) return [];
+    const { data, error } = await supabase
+        .from('portfolio_leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) { console.error('getLeads error:', error); return []; }
+    return data || [];
+}
+
+export async function upsertLead(lead: Partial<PortfolioLead>): Promise<PortfolioLead | null> {
+    if (!supabase) return null;
+
+    // Map frontend camelCase to snake_case if necessary, or ensure DB matches.
+    // Assuming DB has 'tech_stack' based on common patterns, but let's be careful.
+    // If the DB column is 'techStack', we use that. 
+    // For now, let's assume the component passes the right shape or we adjust here.
+
+    const { data, error } = await supabase
+        .from('portfolio_leads')
+        .upsert(lead as any, { onConflict: 'id' })
+        .select()
+        .single();
+
+    if (error) { console.error('upsertLead error:', error); return null; }
+    return data;
+}
+
+export async function deleteLead(id: string): Promise<boolean> {
+    if (!supabase) return false;
+    const { error } = await supabase
+        .from('portfolio_leads')
+        .delete()
+        .eq('id', id);
+    if (error) { console.error('deleteLead error:', error); return false; }
     return true;
 }

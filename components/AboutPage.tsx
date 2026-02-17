@@ -137,16 +137,29 @@ export const AboutPage: React.FC = () => {
               <div className="flex items-start gap-5 mb-6">
                 <div className="mt-1 text-secondary"><BookOpen size={24} /></div>
                 <div>
-                  <h4 className="text-lg font-bold text-primary">M.Sc. Computer Science</h4>
-                  <p className="text-base text-secondary">Stanford University (Online)</p>
-                  <p className="text-sm text-secondary/60">Specialization in Artificial Intelligence</p>
+                  <h4 className="text-lg font-bold text-primary">Chemical Engineering</h4>
+                  <p className="text-base text-secondary">Covenant University</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-5 mb-6">
+                <div className="mt-1 text-secondary"><BookOpen size={24} /></div>
+                <div>
+                  <h4 className="text-lg font-bold text-primary">Gas Engineering</h4>
+                  <p className="text-base text-secondary">University of Port Harcourt</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-5 mb-6">
+                <div className="mt-1 text-secondary"><Award size={24} /></div>
+                <div>
+                  <h4 className="text-lg font-bold text-primary">HSE Certification</h4>
+                  <p className="text-base text-secondary">Health, Safety & Environment</p>
                 </div>
               </div>
               <div className="flex items-start gap-5">
                 <div className="mt-1 text-secondary"><Award size={24} /></div>
                 <div>
-                  <h4 className="text-lg font-bold text-primary">B.A. Graphic Design</h4>
-                  <p className="text-base text-secondary">Rhode Island School of Design</p>
+                  <h4 className="text-lg font-bold text-primary">Prompt Engineering</h4>
+                  <p className="text-base text-secondary">Udemy Online Certification</p>
                 </div>
               </div>
             </div>

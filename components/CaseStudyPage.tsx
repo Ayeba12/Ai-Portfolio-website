@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { ArrowLeft, ArrowUpRight, Check, ExternalLink, Calendar, ArrowDown } from 'lucide-react';
 import { useInView } from './useInView';
-import { getAllCaseStudies } from '../services/supabaseService';
+import { getAllCaseStudies, getProjects } from '../services/supabaseService';
 
 // Extended Data for Case Studies (Static Fallback)
 const staticCaseStudies: Record<number, any> = {
@@ -129,11 +129,29 @@ export const CaseStudyPage: React.FC<CaseStudyPageProps> = ({ id, onBack, onNext
   const [study, setStudy] = useState<any>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [allProjects, setAllProjects] = useState<any[]>([]);
 
   // Dynamic Title & Load Data
   useEffect(() => {
     setIsLoaded(false);
     const loadStudy = async () => {
+      // Fetch all projects for "Up Next" logic
+      let projectsList: any[] = [];
+      try {
+        const supabaseProjects = await getProjects();
+        if (supabaseProjects.length > 0) {
+          projectsList = supabaseProjects
+            .filter((p: any) => p.status === 'Published')
+            .sort((a, b) => (b.id as number) - (a.id as number));
+        } else {
+          // Fallback to static sequence
+          projectsList = Object.values(staticCaseStudies).map((s, idx) => ({ ...s, id: idx + 1 }));
+        }
+        setAllProjects(projectsList);
+      } catch (e) {
+        console.error("Failed to load projects list", e);
+      }
+
       // Try to find from Supabase first, fall back to static data
       let foundStudy = staticCaseStudies[Number(id)];
       try {
@@ -163,23 +181,33 @@ export const CaseStudyPage: React.FC<CaseStudyPageProps> = ({ id, onBack, onNext
     loadStudy();
     window.scrollTo(0, 0);
 
-    const handleUpdate = (e: CustomEvent) => {
-      if (e.detail?.id == id) {
-        loadStudy();
+    const handleUpdate = (e: any) => {
+      // Handle both CustomEvent (same tab) and MessageEvent (cross-tab)
+      const data = e instanceof CustomEvent ? e.detail : e.data;
+
+      // Reload projects list for "Up Next" whenever anything changes
+      loadStudy();
+
+      // If the currently viewed project was deleted, go back
+      if (data?.action === 'delete' && data?.id == id) {
+        onBack();
       }
     };
 
+    const projectChannel = new BroadcastChannel('portfolio_updates');
+    projectChannel.onmessage = handleUpdate;
+
     window.addEventListener('site-projects-update', handleUpdate as EventListener);
 
+    // Scroll progress listener
     const handleScroll = () => {
-      const totalScroll = document.documentElement.scrollTop;
-      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      if (windowHeight === 0) return;
-      const scroll = totalScroll / windowHeight;
-      setScrollProgress(scroll);
+      const totalScroll = window.scrollY;
+      const windowHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = windowHeight > 0 ? (totalScroll / windowHeight) * 100 : 0;
+      setScrollProgress(progress);
     };
-    window.addEventListener('scroll', handleScroll);
 
+    window.addEventListener('scroll', handleScroll);
     return () => {
       window.removeEventListener('site-projects-update', handleUpdate as EventListener);
       window.removeEventListener('scroll', handleScroll);
@@ -381,17 +409,18 @@ export const CaseStudyPage: React.FC<CaseStudyPageProps> = ({ id, onBack, onNext
           <p className="text-white/40 text-sm font-bold uppercase tracking-widest mb-8">Up Next</p>
 
           {(() => {
-            const nextId = study.nextId;
-            const nextStudy = staticCaseStudies[nextId];
-            if (!nextStudy) return null;
+            const currentIndex = allProjects.findIndex(p => p.id == id);
+            const nextProject = allProjects[(currentIndex + 1) % allProjects.length];
+
+            if (!nextProject || nextProject.id == id) return null;
 
             return (
               <button
-                onClick={() => { onNext(nextId); window.scrollTo(0, 0); }}
+                onClick={() => { onNext(nextProject.id); window.scrollTo(0, 0); }}
                 className="group relative inline-block"
               >
                 <h2 className="text-6xl md:text-8xl lg:text-9xl font-display font-medium text-white group-hover:text-accent transition-colors duration-500">
-                  {nextStudy.title}
+                  {nextProject.title}
                 </h2>
                 <div className="flex items-center justify-center gap-2 mt-8 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0 text-accent">
                   <span className="text-lg font-mono">View Case Study</span>

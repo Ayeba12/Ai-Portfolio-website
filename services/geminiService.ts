@@ -41,41 +41,66 @@ export async function* streamMessageFromGemini(
   options: ChatOptions = {}
 ) {
   try {
-    const ai = getClient();
-
-    let model = 'gemini-3-flash-preview';
-    let config: any = {
-      systemInstruction: SYSTEM_INSTRUCTION,
-    };
-
-    if (options.useThinking) {
-      model = 'gemini-3-pro-preview';
-      config.thinkingConfig = { thinkingBudget: 32768 };
-      // Note: maxOutputTokens should NOT be set when using thinking
-    } else if (options.useSearch) {
-      // Use flash for search as per instructions
-      model = 'gemini-3-flash-preview';
-      config.tools = [{ googleSearch: {} }];
-    }
-
-    const chat = ai.chats.create({
-      model: model,
-      config: config,
-      history: history.map(h => ({
-        role: h.role,
-        parts: [{ text: h.text }]
-      }))
+    const response = await fetch('/.netlify/functions/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        history,
+        message: newMessage,
+        options,
+      }),
     });
 
-    const result = await chat.sendMessageStream({ message: newMessage });
-
-    for await (const chunk of result) {
-      // Return both text and grounding metadata
-      yield {
-        text: chunk.text,
-        groundingChunks: chunk.candidates?.[0]?.groundingMetadata?.groundingChunks
-      };
+    if (!response.ok || !response.body) {
+      if (response.status === 404) {
+        throw new Error("Backend function not found. Please ensure Netlify Functions are running.");
+      }
+      const errorText = await response.text();
+      throw new Error(`Server Error: ${response.status} ${errorText}`);
     }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep the last incomplete line in the buffer
+
+      for (const line of lines) {
+        if (line.trim()) {
+          try {
+            const data = JSON.parse(line);
+            if (data.error) {
+              throw new Error(data.error);
+            }
+            yield data;
+          } catch (e) {
+            console.error("Error parsing NDJSON chunk:", e);
+          }
+        }
+      }
+    }
+
+    // Process any remaining buffer
+    if (buffer.trim()) {
+      try {
+        const data = JSON.parse(buffer);
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        yield data;
+      } catch (e) {
+        console.error("Error parsing final NDJSON chunk:", e);
+      }
+    }
+
   } catch (error: any) {
     console.error("Gemini Stream Error:", error);
 
@@ -95,8 +120,8 @@ export async function* streamMessageFromGemini(
       errorMessage = "Network connection failed. Please check your internet connection.";
     } else if (errMessage.includes('safety') || errMessage.includes('blocked') || errMessage.includes('content')) {
       errorMessage = "I cannot generate a response to that specific request due to safety guidelines. Please try rephrasing.";
-    } else if (errMessage.includes('400') || errMessage.includes('bad request')) {
-      errorMessage = "I couldn't process that request. It might be too complex or malformed. Try simplifying your prompt.";
+    } else if (errMessage.includes('backend function not found')) {
+      errorMessage = "Backend service unreachable - ensure you are running via Netlify CLI.";
     }
 
     yield { text: errorMessage };
